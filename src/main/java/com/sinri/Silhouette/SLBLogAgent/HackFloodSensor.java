@@ -1,25 +1,13 @@
 package com.sinri.Silhouette.SLBLogAgent;
 
-import com.alibaba.fastjson.JSONObject;
 import com.aliyun.openservices.log.common.QueriedLog;
 import com.aliyun.openservices.log.response.GetLogsResponse;
+import com.sinri.Silhouette.DingtalkAgent.DingtalkRobotAgent;
 import com.sinri.Silhouette.LogAgent.AccessKeyConfig;
 import com.sinri.Silhouette.LogAgent.LogAgent;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.EntityBuilder;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,12 +32,8 @@ public class HackFloodSensor {
         this.alertStandard=10L;
     }
 
-    protected Logger getLogger(){
-        return LoggerFactory.getLogger(this.getClass());
-    }
-
     public void censor() throws IOException {
-        String query = "* | select client_ip,request_uri,count(*)  as count group by client_ip, request_uri order by count desc";
+        String query = "* | select client_ip,host,request_uri,count(*) as count group by client_ip,host,request_uri order by count desc";
 
         long currentTime = new Date().getTime();
         GetLogsResponse getLogsResponse = logAgent.quickSearchLog(project, logStore, (int) ((currentTime - 1000 * recentSeconds) / 1000), (int) (currentTime / 1000), null, query);
@@ -79,38 +63,21 @@ public class HackFloodSensor {
         alert(groups);
     }
 
-    protected void alert(ArrayList<ClientUriCountResult> groups) throws IOException {
+    private void alert(ArrayList<ClientUriCountResult> groups) throws IOException {
         //System.out.println("HackFloodSensor Alert for flood attack of "+groups.size()+ " types");
         LoggerFactory.getLogger(this.getClass()).warn("HackFloodSensor Alert for flood attack of "+groups.size()+ " types");
         groups.forEach(clientUriCountResult -> {
 //            System.out.println(clientUriCountResult.getClientIP());
             LoggerFactory.getLogger(this.getClass()).warn(clientUriCountResult.toString());
         });
-        // TODO
         if(dingtalkRobotUrl!=null){
             // Dingtalk Robot
-            StringBuilder content=new StringBuilder();
+            StringBuilder content = new StringBuilder("# " + alertSenderTitle + "\n");
             content.append(groups.size()).append(" flood attacks (> ").append(alertStandard).append(") reported in recent ").append(recentSeconds).append(" seconds.\n\n");
-            groups.forEach(clientUriCountResult -> {
-                content.append("* ").append(clientUriCountResult.toString()).append("\n");
-            });
+            groups.forEach(clientUriCountResult -> content.append("* ").append(clientUriCountResult.toString()).append("\n"));
             content.append("\n").append("> reported on ").append(new Date());
 
-            JSONObject markdownObject=new JSONObject();
-            markdownObject.put("title",alertSenderTitle);
-            markdownObject.put("text",content);
-
-            JSONObject object = new JSONObject();
-            object.put("msgtype","markdown");
-            object.put("markdown",markdownObject);
-
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            HttpPost httpPost = new HttpPost(dingtalkRobotUrl);
-            httpPost.setHeader("Content-Type","application/json");
-            httpPost.setEntity(new StringEntity(object.toJSONString(),"UTF-8"));
-            CloseableHttpResponse response2 = httpClient.execute(httpPost);
-
-            LoggerFactory.getLogger(this.getClass()).debug("dingtalk robot api response: "+response2);
+            (new DingtalkRobotAgent(dingtalkRobotUrl)).send(alertSenderTitle, content.toString());
         }
     }
 
@@ -124,22 +91,29 @@ public class HackFloodSensor {
             });
         }
 
-        public String getLogTime(){
+        String getLogTime() {
             return entryMap.get("logtime");
         }
-        public String getCount(){
+
+        String getCount() {
             return entryMap.get("count");
         }
-        public String getClientIP(){
+
+        String getClientIP() {
             return entryMap.get("client_ip");
         }
-        public String getRequestUri(){
+
+        String getRequestUri() {
             return entryMap.get("request_uri");
+        }
+
+        String getHost() {
+            return entryMap.get("host");
         }
 
         @Override
         public String toString() {
-            return "In this period, "+getClientIP()+" requested "+getRequestUri()+" for "+getCount()+" times.";
+            return "In this period, " + getClientIP() + " requested " + getHost() + getRequestUri() + " for " + getCount() + " times.";
         }
     }
 
@@ -155,9 +129,9 @@ public class HackFloodSensor {
                 properties.getProperty("aliyun.sls.logstore", "")
         );
 
-        String dintalkRobotUrl = properties.getProperty("option.alert.dingtalk-robot");
-        if(dintalkRobotUrl!=null){
-            hackFloodSensor.dingtalkRobotUrl=dintalkRobotUrl;
+        String dingtalkRobotUrl = properties.getProperty("option.alert.dingtalk-robot");
+        if (dingtalkRobotUrl != null) {
+            hackFloodSensor.dingtalkRobotUrl = dingtalkRobotUrl;
             hackFloodSensor.alertSenderTitle=properties.getProperty("task.name","Anonymous HackFloodSensor for "+properties.getProperty("aliyun.sls.project", "")+":"+properties.getProperty("aliyun.sls.logstore", ""));
         }
 
