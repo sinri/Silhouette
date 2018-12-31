@@ -20,7 +20,7 @@ public class DingtalkRobotAgent {
     public void send(String title, String content) throws IOException {
         JSONObject markdownObject = new JSONObject();
         markdownObject.put("title", title);
-        markdownObject.put("text", content);
+        markdownObject.put("text", "# " + title + "\n\n" + content);
 
         JSONObject object = new JSONObject();
         object.put("msgtype", "markdown");

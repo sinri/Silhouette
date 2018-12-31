@@ -1,13 +1,14 @@
 package com.sinri.Silhouette;
 
-import com.sinri.Silhouette.SLBLogAgent.HackFloodSensor;
-import org.apache.commons.cli.*;
+import com.sinri.Silhouette.Tasks.FloodAttackWarnTask;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.Properties;
 
 public class Silhouette {
@@ -59,8 +60,8 @@ public class Silhouette {
         if(taskName==null || taskName.isEmpty()){
             throw new Exception("Property task.type is not defined.");
         }
-        if(taskType.equals("HackFloodSensor")){
-            HackFloodSensor.runTask(properties);
+        if (taskType.equals("FloodAttackWarnTask")) {
+            (new FloodAttackWarnTask(properties)).runTask();
         }
     }
 

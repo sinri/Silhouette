@@ -4,7 +4,6 @@ import com.sinri.Silhouette.LogAgent.AccessKeyConfig;
 import com.sinri.Silhouette.LogAgent.LogAgent;
 import com.sinri.Silhouette.SLBLogAgent.HackFloodSensor;
 
-import java.io.IOException;
 import java.util.Date;
 
 public class HackFloodSensorTest {
@@ -23,11 +22,7 @@ public class HackFloodSensorTest {
         LogAgent logAgent = new LogAgent(getTestAK(),endpoint);
 
         HackFloodSensor hackFloodSensor = new HackFloodSensor(logAgent, project, logStore);
-        try {
-            hackFloodSensor.censor();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        hackFloodSensor.censor();
     }
 
     private static void test1(LogAgent logAgent, String project, String logStore){
