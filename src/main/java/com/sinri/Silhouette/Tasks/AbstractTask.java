@@ -16,8 +16,6 @@ abstract public class AbstractTask {
     AbstractTask(Properties properties) {
         this.properties = properties;
 
-        taskName = properties.getProperty("task.name", "Anonymous HackFloodSensor for " + project + ":" + logStore);
-
         akId = properties.getProperty("aliyun.ak.id", "");
         akSecret = properties.getProperty("aliyun.ak.secret", "");
 
@@ -27,7 +25,10 @@ abstract public class AbstractTask {
 
         dingtalkRobotUrl = properties.getProperty("option.alert.dingtalk-robot");
 
+        taskName = properties.getProperty("task.name", "Anonymous HackFloodSensor for " + project + ":" + logStore);
     }
 
     abstract public void runTask() throws Exception;
+
+    abstract public void runTaskInDaemonMode() throws Exception;
 }

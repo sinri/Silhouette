@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class FloodAttackWarnTask extends AbstractTask {
 
@@ -19,6 +22,8 @@ public class FloodAttackWarnTask extends AbstractTask {
 
     private ArrayList<String> hosts;
     private ArrayList<String> uris;
+
+    HackFloodSensor hackFloodSensor;
 
     public FloodAttackWarnTask(Properties properties) {
         super(properties);
@@ -33,10 +38,11 @@ public class FloodAttackWarnTask extends AbstractTask {
         String urisString = properties.getProperty("option.where-uri", "");
         uris = new ArrayList<>(Arrays.asList(urisString.split("[,\\s]+")));
         uris.removeIf(String::isEmpty);
+
+        hackFloodSensor = buildSensor();
     }
 
-    @Override
-    public void runTask() throws Exception {
+    private HackFloodSensor buildSensor() {
         AccessKeyConfig accessKeyConfig = new AccessKeyConfig(akId, akSecret);
         LogAgent logAgent = new LogAgent(accessKeyConfig, endpoint);
         HackFloodSensor hackFloodSensor = new HackFloodSensor(logAgent, project, logStore);
@@ -46,6 +52,11 @@ public class FloodAttackWarnTask extends AbstractTask {
         hackFloodSensor.setHostList(hosts);
         hackFloodSensor.setUriList(uris);
 
+        return hackFloodSensor;
+    }
+
+    @Override
+    public void runTask() throws Exception {
         ArrayList<HackFloodSensor.ClientUriCountResult> results = hackFloodSensor.censor();
 
         if (results != null && results.size() > 0) {
@@ -56,6 +67,19 @@ public class FloodAttackWarnTask extends AbstractTask {
                 alertThroughDingtalkRobot(taskName, results);
             }
         }
+    }
+
+    @Override
+    public void runTaskInDaemonMode() throws Exception {
+        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                runTask();
+            } catch (Exception e) {
+                //e.printStackTrace();
+                LoggerFactory.getLogger(this.getClass()).error(e.getMessage(), e);
+            }
+        }, 0, period, TimeUnit.SECONDS);
     }
 
     private void alertThroughDingtalkRobot(String title, ArrayList<HackFloodSensor.ClientUriCountResult> groups) throws IOException {

@@ -16,6 +16,7 @@ public class Silhouette {
         Options ops = new Options();
         ops.addOption("help", "Display help information");
         ops.addOption("c",true,"Configuration File Path");
+        ops.addOption("d", "Run in Daemon Mode");
 
         try {
             CommandLine options = new DefaultParser().parse(ops, args);
@@ -45,13 +46,13 @@ public class Silhouette {
             Properties properties = new Properties();
             properties.load(new FileReader(configFile));
 
-            runFollowConfig(properties);
+            runFollowConfig(properties, ops.hasOption("d"));
         } catch (Exception e) {
             LoggerFactory.getLogger(Silhouette.class).error(e.getMessage(),e);
         }
     }
 
-    private static void runFollowConfig(Properties properties) throws Exception {
+    private static void runFollowConfig(Properties properties, Boolean daemonMode) throws Exception {
         String taskType = properties.getProperty("task.type");
         if(taskType==null || taskType.isEmpty()){
             throw new Exception("Property task.type is not defined.");
@@ -61,7 +62,11 @@ public class Silhouette {
             throw new Exception("Property task.type is not defined.");
         }
         if (taskType.equals("FloodAttackWarnTask")) {
-            (new FloodAttackWarnTask(properties)).runTask();
+            if (daemonMode) {
+                (new FloodAttackWarnTask(properties)).runTaskInDaemonMode();
+            } else {
+                (new FloodAttackWarnTask(properties)).runTask();
+            }
         }
     }
 
