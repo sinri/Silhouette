@@ -53,12 +53,23 @@ public class HackFloodSensor {
     private ArrayList<String> hostList;
     private ArrayList<String> uriList;
 
+    public Boolean getNeedUri() {
+        return needUri;
+    }
+
+    public void setNeedUri(Boolean needUri) {
+        this.needUri = needUri;
+    }
+
+    private Boolean needUri;
+
     public HackFloodSensor(LogAgent logAgent,String project,String logStore){
         this.logAgent=logAgent;
         this.project=project;
         this.logStore=logStore;
         this.recentSeconds=60L;
         this.alertStandard=10L;
+        this.needUri = false;
     }
 
     private String makeQueryString() {
@@ -75,7 +86,10 @@ public class HackFloodSensor {
             uriList.forEach(stringJoiner::add);
             where += " and request_uri in (" + stringJoiner + ") ";
         }
-        return "* | select client_ip,host,request_uri,count(*) as count " + where + " group by client_ip,host,request_uri order by count desc";
+        return "* | " +
+                "select client_ip,host," + (needUri ? "request_uri," : "") + "count(*) as count " +
+                " " + where + " " +
+                "group by client_ip,host" + (needUri ? ",request_uri" : "") + " order by count desc";
     }
 
     public ArrayList<ClientUriCountResult> censor() {
@@ -134,7 +148,7 @@ public class HackFloodSensor {
 
         @Override
         public String toString() {
-            return "In this period, " + getClientIP() + " requested " + getHost() + getRequestUri() + " for " + getCount() + " times.";
+            return "In this period, " + getClientIP() + " requested " + getHost() + (needUri ? getRequestUri() : "") + " for " + getCount() + " times.";
         }
     }
 

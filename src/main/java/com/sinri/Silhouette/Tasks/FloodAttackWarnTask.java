@@ -23,6 +23,8 @@ public class FloodAttackWarnTask extends AbstractTask {
     private ArrayList<String> hosts;
     private ArrayList<String> uris;
 
+    private Boolean needUri;
+
     private HackFloodSensor hackFloodSensor;
 
     public FloodAttackWarnTask(Properties properties) {
@@ -39,6 +41,8 @@ public class FloodAttackWarnTask extends AbstractTask {
         uris = new ArrayList<>(Arrays.asList(urisString.split("[,\\s]+")));
         uris.removeIf(String::isEmpty);
 
+        needUri = properties.getProperty("option.need-uri", "NO").equalsIgnoreCase("YES");
+
         hackFloodSensor = buildSensor();
     }
 
@@ -51,6 +55,7 @@ public class FloodAttackWarnTask extends AbstractTask {
         hackFloodSensor.setAlertStandard(alertStandard);
         hackFloodSensor.setHostList(hosts);
         hackFloodSensor.setUriList(uris);
+        hackFloodSensor.setNeedUri(needUri);
 
         return hackFloodSensor;
     }
