@@ -3,7 +3,7 @@ package com.sinri.Silhouette.Tasks;
 import java.util.Properties;
 
 abstract public class AbstractTask {
-    Properties properties;
+    private Properties properties;
 
     String akId;
     String akSecret;
@@ -31,4 +31,8 @@ abstract public class AbstractTask {
     abstract public void runTask() throws Exception;
 
     abstract public void runTaskInDaemonMode() throws Exception;
+
+    protected Properties getProperties() {
+        return properties;
+    }
 }

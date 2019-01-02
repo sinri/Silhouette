@@ -2,12 +2,12 @@ package com.sinri.Silhouette.SLBLogAgent;
 
 import com.aliyun.openservices.log.common.QueriedLog;
 import com.aliyun.openservices.log.response.GetLogsResponse;
+import com.sinri.Silhouette.LogAgent.AliyunLogItem;
 import com.sinri.Silhouette.LogAgent.LogAgent;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.StringJoiner;
 
 public class HackFloodSensor {
@@ -84,16 +84,13 @@ public class HackFloodSensor {
 
         long currentTime = new Date().getTime();
         GetLogsResponse getLogsResponse = logAgent.quickSearchLog(project, logStore, (int) ((currentTime - 1000 * recentSeconds) / 1000), (int) (currentTime / 1000), null, query);
-//        System.out.println("Logs count: " + getLogsResponse.GetCount());
         LoggerFactory.getLogger(this.getClass()).debug("Logs count: " + getLogsResponse.GetCount());
         if (getLogsResponse.GetCount() <= 0) {
-//            System.out.println("Cannot fetch request groups, it may be a silent spring.");
             LoggerFactory.getLogger(this.getClass()).debug("Cannot fetch request groups, it may be a silent spring.");
             return null;
         }
         ArrayList<ClientUriCountResult> groups = new ArrayList<>();
         getLogsResponse.GetLogs().forEach(queriedLog -> {
-            //System.out.println("> "+queriedLog.GetSource()+", "+queriedLog.GetLogItem().GetTime()+": "+queriedLog.GetLogItem().ToJsonString());
             ClientUriCountResult clientUriCountResult = new ClientUriCountResult(queriedLog);
             LoggerFactory.getLogger(this.getClass()).debug("Parsed: "+clientUriCountResult.toString());
             if(Long.parseLong(clientUriCountResult.getCount())>alertStandard) {
@@ -102,28 +99,22 @@ public class HackFloodSensor {
         });
 
         if(groups.isEmpty()){
-//            System.out.println("The world seems peaceful.");
             LoggerFactory.getLogger(this.getClass()).debug("The world seems peaceful.");
             return groups;
         }
 
-        //alert(groups);
         return groups;
     }
 
-    public class ClientUriCountResult {
-        HashMap<String,String> entryMap;
+    public class ClientUriCountResult extends AliyunLogItem {
 
-        ClientUriCountResult(QueriedLog queriedLog){
-            entryMap=new HashMap<>();
-            queriedLog.GetLogItem().GetLogContents().forEach(logContent -> {
-                entryMap.put(logContent.GetKey(),logContent.GetValue());
-            });
+        ClientUriCountResult(QueriedLog queriedLog) {
+            super(queriedLog);
         }
 
-        String getLogTime() {
-            return entryMap.get("logtime");
-        }
+//        String getLogTime() {
+//            return entryMap.get("logtime");
+//        }
 
         String getCount() {
             return entryMap.get("count");

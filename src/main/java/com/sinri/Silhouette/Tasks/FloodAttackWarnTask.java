@@ -23,7 +23,7 @@ public class FloodAttackWarnTask extends AbstractTask {
     private ArrayList<String> hosts;
     private ArrayList<String> uris;
 
-    HackFloodSensor hackFloodSensor;
+    private HackFloodSensor hackFloodSensor;
 
     public FloodAttackWarnTask(Properties properties) {
         super(properties);
@@ -70,13 +70,12 @@ public class FloodAttackWarnTask extends AbstractTask {
     }
 
     @Override
-    public void runTaskInDaemonMode() throws Exception {
+    public void runTaskInDaemonMode() {
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 runTask();
             } catch (Exception e) {
-                //e.printStackTrace();
                 LoggerFactory.getLogger(this.getClass()).error(e.getMessage(), e);
             }
         }, 0, period, TimeUnit.SECONDS);

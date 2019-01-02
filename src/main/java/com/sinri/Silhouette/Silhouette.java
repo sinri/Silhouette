@@ -8,7 +8,9 @@ import org.apache.commons.cli.Options;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.Properties;
 
 public class Silhouette {
@@ -33,23 +35,38 @@ public class Silhouette {
             }
 
             String configPath = options.getOptionValue('c');
-            File configFile = new File(configPath);
-            if(!configFile.exists()){
-                LoggerFactory.getLogger(Silhouette.class).error("Config File Missing: "+configFile.getAbsolutePath());
-                return;
+
+            Properties properties = loadPropertiesFromConfigFile(configPath);
+
+            if (properties == null) {
+                throw new IOException("Fatal Error: Properties Lack.");
             }
-            if(!configFile.canRead()){
-                LoggerFactory.getLogger(Silhouette.class).error("Cannot Read Config File: "+configFile.getAbsolutePath());
-                return;
+
+            runFollowConfig(properties, ops.hasOption("d"));
+        } catch (Exception e) {
+            LoggerFactory.getLogger(Silhouette.class).error(e.getMessage(), e);
+        }
+    }
+
+    private static Properties loadPropertiesFromConfigFile(String configFilePath) {
+        try {
+            File configFile = new File(configFilePath);
+            if (!configFile.exists()) {
+                LoggerFactory.getLogger(Silhouette.class).error("Config File Missing: " + configFile.getAbsolutePath());
+                throw new FileNotFoundException("Config File Missing: " + configFile.getAbsolutePath());
+            }
+            if (!configFile.canRead()) {
+                throw new IOException("Cannot Read Config File: " + configFile.getAbsolutePath());
             }
 
             Properties properties = new Properties();
             properties.load(new FileReader(configFile));
 
-            runFollowConfig(properties, ops.hasOption("d"));
-        } catch (Exception e) {
-            LoggerFactory.getLogger(Silhouette.class).error(e.getMessage(),e);
+            return properties;
+        } catch (IOException e) {
+            LoggerFactory.getLogger(Silhouette.class).warn(e.getMessage(), e);
         }
+        return null;
     }
 
     private static void runFollowConfig(Properties properties, Boolean daemonMode) throws Exception {

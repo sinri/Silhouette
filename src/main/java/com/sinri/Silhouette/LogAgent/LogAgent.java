@@ -10,12 +10,9 @@ import org.slf4j.LoggerFactory;
 
 public class LogAgent {
 
-    //private AccessKeyConfig accessKeyConfig;
-
     private Client client;
 
     public LogAgent(AccessKeyConfig accessKeyConfig,String endpoint){
-        //this.accessKeyConfig=accessKeyConfig;
         client = new Client(endpoint,accessKeyConfig.accessKeyId,accessKeyConfig.accessKeySecret);
     }
 
@@ -31,7 +28,6 @@ public class LogAgent {
             ListLogStoresRequest req1 = new ListLogStoresRequest(project, offset, size, logStoreSubName);
             return client.ListLogStores(req1);
         } catch (LogException e) {
-//            e.printStackTrace();
             LoggerFactory.getLogger(this.getClass()).error(e.getMessage(),e);
         }
 
@@ -63,7 +59,6 @@ public class LogAgent {
             GetLogsRequest getLogsRequest = new GetLogsRequest(project, logStore, fromTimestamp, toTimestamp, topic, query, offset, maxReturnLines, reverse);
             return client.GetLogs(getLogsRequest);
         } catch (LogException e) {
-//            e.printStackTrace();
             LoggerFactory.getLogger(this.getClass()).error(e.getMessage(),e);
         }
         return null;
@@ -83,7 +78,6 @@ public class LogAgent {
             GetLogsRequest getLogsRequest = new GetLogsRequest(project, logStore, fromTimestamp, toTimestamp, topic, query);
             return client.GetLogs(getLogsRequest);
         } catch (LogException e) {
-//            e.printStackTrace();
             LoggerFactory.getLogger(this.getClass()).error(e.getMessage(),e);
         }
         return null;
