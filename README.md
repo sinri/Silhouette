@@ -8,7 +8,7 @@ Run as a CLI task for once.
 Prepare a properties file to define what task to run and how to run as the following
 
 ```bash
-java -jar Silhouette-1.0-SNAPSHOT.jar -c any.properties
+java -jar Silhouette.jar -c any.properties
 ```
 
 Okay now.
