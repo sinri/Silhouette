@@ -16,25 +16,37 @@
         <!--Appender 1. 输出到Console控制台，指定输出格式和过滤器等级为INFO -->
         <Console name="Console" target="SYSTEM_OUT">
             <!--ThresholdFilter指定日志消息的输出最低层次-->
-            <ThresholdFilter level="ALL" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%level] %class{36} %L %M - %msg%xEx%n"/>
         </Console>
 
         <!--Appender 2. 输出到滚动保存的文件, 触发保存日志文件的条件是日志文件大于3KB，只保存最新的10个日志-->
-        <File name="allLog" fileName="${LOG_HOME}/all.log">
-            <ThresholdFilter level="ALL" onMatch="ACCEPT" onMismatch="DENY"/>
+        <!--<File name="allLog" fileName="${LOG_HOME}/all.log">-->
+        <!--<ThresholdFilter level="ALL" onMatch="ACCEPT" onMismatch="DENY"/>-->
+        <!--<PatternLayout charset="UTF-8"-->
+        <!--pattern="%d{yyyy-MM-dd HH:mm:ss} [%level] %class{36} %L %M - %msg%xEx%n"/>-->
+        <!--&lt;!&ndash;<PatternLayout charset="UTF-8" pattern="%d[%t] [%level] [%l][%c.%f(%j:%b)][%h] - %m%n" />&ndash;&gt;-->
+        <!--</File>-->
+
+        <!--循环写入文件：-->
+        <RollingFile name="RollingFile" fileName="${LOG_HOME}/all.log"
+                     filePattern="${LOG_HOME}/all-%d{yyyy-MM-dd}-%i.log">
             <PatternLayout charset="UTF-8"
                            pattern="%d{yyyy-MM-dd HH:mm:ss} [%level] %class{36} %L %M - %msg%xEx%n"/>
-            <!--<PatternLayout charset="UTF-8" pattern="%d[%t] [%level] [%l][%c.%f(%j:%b)][%h] - %m%n" />-->
-        </File>
-
+            <!--滚动策略：-->
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100 mb"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
 
     </appenders>
     <!--root 默认加载-->
     <loggers>
         <root level="DEBUG">
             <appender-ref ref="Console"/>
-            <appender-ref ref="allLog"/>
+            <appender-ref ref="RollingFile"/>
         </root>
     </loggers>
 </configuration>
