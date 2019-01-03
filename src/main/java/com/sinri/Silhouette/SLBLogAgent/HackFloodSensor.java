@@ -6,14 +6,35 @@ import com.sinri.Silhouette.LogAgent.AliyunLogItem;
 import com.sinri.Silhouette.LogAgent.LogAgent;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.StringJoiner;
+import java.util.*;
 
 public class HackFloodSensor {
     private LogAgent logAgent;
     private String project;
     private String logStore;
+    private Long recentSeconds;
+    private Long alertStandard;
+
+    public Long getAlertStandardForClientIP() {
+        return alertStandardForClientIP;
+    }
+
+    public void setAlertStandardForClientIP(Long alertStandardForClientIP) {
+        this.alertStandardForClientIP = alertStandardForClientIP;
+    }
+
+    private Long alertStandardForClientIP;
+    private ArrayList<String> hostList;
+    private ArrayList<String> uriList;
+
+    public HackFloodSensor(LogAgent logAgent, String project, String logStore) {
+        this.logAgent = logAgent;
+        this.project = project;
+        this.logStore = logStore;
+        this.recentSeconds = 60L;
+        this.alertStandard = 10L;
+        this.alertStandardForClientIP = 50L;
+    }
 
     public Long getRecentSeconds() {
         return recentSeconds;
@@ -47,31 +68,6 @@ public class HackFloodSensor {
         this.uriList = uriList;
     }
 
-    private Long recentSeconds;
-    private Long alertStandard;
-
-    private ArrayList<String> hostList;
-    private ArrayList<String> uriList;
-
-    public Boolean getNeedUri() {
-        return needUri;
-    }
-
-    public void setNeedUri(Boolean needUri) {
-        this.needUri = needUri;
-    }
-
-    private Boolean needUri;
-
-    public HackFloodSensor(LogAgent logAgent,String project,String logStore){
-        this.logAgent=logAgent;
-        this.project=project;
-        this.logStore=logStore;
-        this.recentSeconds=60L;
-        this.alertStandard=10L;
-        this.needUri = false;
-    }
-
     private String makeQueryString() {
         String where = " where 1=1 ";
         if (hostList != null && hostList.size() > 0) {
@@ -87,9 +83,9 @@ public class HackFloodSensor {
             where += " and request_uri in (" + stringJoiner + ") ";
         }
         return "* | " +
-                "select client_ip,host," + (needUri ? "request_uri," : "") + "count(*) as count " +
+                "select client_ip,host,request_uri,count(*) as count " +
                 " " + where + " " +
-                "group by client_ip,host" + (needUri ? ",request_uri" : "") + " order by count desc";
+                "group by client_ip,host,request_uri order by count desc";
     }
 
     public ArrayList<ClientUriCountResult> censor() {
@@ -98,26 +94,50 @@ public class HackFloodSensor {
 
         long currentTime = new Date().getTime();
         GetLogsResponse getLogsResponse = logAgent.quickSearchLog(project, logStore, (int) ((currentTime - 1000 * recentSeconds) / 1000), (int) (currentTime / 1000), null, query);
-        LoggerFactory.getLogger(this.getClass()).debug("Logs count: " + getLogsResponse.GetCount());
+        LoggerFactory.getLogger(this.getClass()).info("Logs count: " + getLogsResponse.GetCount());
         if (getLogsResponse.GetCount() <= 0) {
-            LoggerFactory.getLogger(this.getClass()).debug("Cannot fetch request groups, it may be a silent spring.");
+            LoggerFactory.getLogger(this.getClass()).info("Cannot fetch request groups, it may be a silent spring.");
             return null;
         }
         ArrayList<ClientUriCountResult> groups = new ArrayList<>();
         getLogsResponse.GetLogs().forEach(queriedLog -> {
             ClientUriCountResult clientUriCountResult = new ClientUriCountResult(queriedLog);
-            LoggerFactory.getLogger(this.getClass()).debug("Parsed: "+clientUriCountResult.toString());
             if(Long.parseLong(clientUriCountResult.getCount())>alertStandard) {
+                LoggerFactory.getLogger(this.getClass()).warn("Parsed: " + clientUriCountResult.toString());
                 groups.add(clientUriCountResult);
+            } else {
+                LoggerFactory.getLogger(this.getClass()).debug("Parsed: " + clientUriCountResult.toString());
             }
         });
 
         if(groups.isEmpty()){
-            LoggerFactory.getLogger(this.getClass()).debug("The world seems peaceful.");
+            LoggerFactory.getLogger(this.getClass()).info("The world seems peaceful.");
             return groups;
         }
 
         return groups;
+    }
+
+    public HashMap<String, Integer> censorByClientIP(ArrayList<ClientUriCountResult> results) {
+        HashMap<String, Integer> hostMap = new HashMap<>();
+        results.forEach(result -> {
+            String clientIP = result.getClientIP();
+            Integer mapped = hostMap.getOrDefault(clientIP, 0);
+            mapped += Integer.parseInt(result.getCount());
+            hostMap.put(clientIP, mapped);
+        });
+
+        HashMap<String, Integer> clientRequestsHashMap = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : hostMap.entrySet()) {
+            String clientIP = entry.getKey();
+            Integer count = entry.getValue();
+            if (count > alertStandardForClientIP) {
+                LoggerFactory.getLogger(this.getClass()).warn("From " + clientIP + " totally " + count + " came.");
+                clientRequestsHashMap.put(clientIP, count);
+            }
+        }
+
+        return clientRequestsHashMap;
     }
 
     public class ClientUriCountResult extends AliyunLogItem {
@@ -148,7 +168,7 @@ public class HackFloodSensor {
 
         @Override
         public String toString() {
-            return "In this period, " + getClientIP() + " requested " + getHost() + (needUri ? getRequestUri() : "") + " for " + getCount() + " times.";
+            return "In this period, " + getClientIP() + " requested " + getHost() + (getRequestUri() != null ? getRequestUri() : "") + " for " + getCount() + " times.";
         }
     }
 

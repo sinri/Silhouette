@@ -18,7 +18,7 @@ public class Silhouette {
         Options ops = new Options();
         ops.addOption("help", "Display help information");
         ops.addOption("c",true,"Configuration File Path");
-        ops.addOption("d", "Run in Daemon Mode");
+        ops.addOption("d", false, "Run in Daemon Mode");
 
         try {
             CommandLine options = new DefaultParser().parse(ops, args);
@@ -28,7 +28,7 @@ public class Silhouette {
                 return;
             }
 
-            if(!options.hasOption("c")){
+            if (!options.hasOption('c')) {
                 LoggerFactory.getLogger(Silhouette.class).error("Config Parameter Missing, die.");
                 help(ops);
                 return;
@@ -42,7 +42,7 @@ public class Silhouette {
                 throw new IOException("Fatal Error: Properties Lack.");
             }
 
-            runFollowConfig(properties, ops.hasOption("d"));
+            runFollowConfig(properties, options.hasOption('d'));
         } catch (Exception e) {
             LoggerFactory.getLogger(Silhouette.class).error(e.getMessage(), e);
         }
@@ -80,6 +80,7 @@ public class Silhouette {
         }
         if (taskType.equals("FloodAttackWarnTask")) {
             if (daemonMode) {
+                LoggerFactory.getLogger(Silhouette.class).info("Silhouette " + taskType + " " + taskName + " run in daemon mode");
                 (new FloodAttackWarnTask(properties)).runTaskInDaemonMode();
             } else {
                 (new FloodAttackWarnTask(properties)).runTask();
